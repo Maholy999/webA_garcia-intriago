@@ -10,8 +10,8 @@ Aplicaciones Web II (TDI-610) · Aplicación para el Servidor Web (IS-503)
 
 | Integrante | Usuario de GitHub | Paralelo |
 | --- | --- | --- |
-| [Apellidos Nombres] | [usuario] | [Servidor Web A / Web II A / Web II B] |
-| [Apellidos Nombres] | [usuario] | [Servidor Web A / Web II A / Web II B] |
+| Garcia Intriago Maholy Maria| Maholy999 | Servidor Web A |
+| Garcia Peñarrieta Brittany Rubi | brittanygarcia2406-eng | Servidor Web A |
 
 ## El producto
 
