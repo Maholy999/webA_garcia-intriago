@@ -5,3 +5,6 @@ bin/
 .env.*
 .DS_Store
 *.log
+.env
+.env.atras
+*.exe

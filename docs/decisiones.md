@@ -33,3 +33,8 @@ que un cliente mal hecho siga funcionando sin darse cuenta de su error.
 Cómo lo comprobamos:
 `curl -i -X POST localhost:8080/tickets -d '{"titulo":"Pantalla rota","prioridad":"alta","estado":"cerrado"}'`
 El `Decode` falla y responde `cuerpo_malformado` (o el código que hayan definido para este caso).
+
+## Semana 4 · D3 · La prueba que no escribimos
+**Decisión:** La fila estrella de nuestra E4 es la prueba `estado inventado responde 422` del `TestCrear`, porque valida la regla más importante del flujo antes de tocar la base: un `estado` que no está en el mapa debe rechazarse con 422.
+**Por qué:** En el manejador de creación, la validación ocurre antes de cualquier consulta a la DB; si el JSON llega roto o con un estado no permitido, el controlador responde inmediatamente sin consultar `m.DB`. Eso es exactamente lo que queríamos probar para asegurar que la lógica de validación no cruza la línea de la base.
+**Qué descartamos:** Descartamos la prueba que cruza la base con `m.DB.Debug()` en un caso inválido, porque esa prueba termina en un `nil pointer dereference` y no comprueba la regla de negocio; lo correcto es dejarla fuera o reordenar el código para validar primero. La línea de inicio real de la base en el archivo terminado es `internal/tareas/manejadores.go`, línea 80, donde aparece `query := m.DB.Debug()`. Qué haría falta para probarla: un caso de `GET /tareas?estado=urgente` con `DB: nil` y una expectativa de 422, que confirme que el filtro del query string se valida antes de tocar la base, sin implementarlo aquí.

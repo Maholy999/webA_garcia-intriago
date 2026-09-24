@@ -1,4 +1,4 @@
-# [Nombre del producto]
+# Servidor Garcia
 
 > Reemplacen todo lo que está entre corchetes en su primer commit.
 > Este README es la puerta de entrada del repositorio: en la semana 1 otra pareja debe poder levantar el servidor siguiendo solo lo que dice aquí, y desde la semana 4 es la base de la integración continua.
@@ -8,9 +8,9 @@ Aplicaciones Web II (TDI-610) · Aplicación para el Servidor Web (IS-503)
 
 ## Integrantes
 
-| Integrante | Usuario de GitHub | Paralelo |
-| --- | --- | --- |
-| Garcia Intriago Maholy Maria| Maholy999 | Servidor Web A |
+| Integrante                      | Usuario de GitHub      | Paralelo       |
+| ------------------------------- | ---------------------- | -------------- |
+| Garcia Intriago Maholy Maria    | Maholy999              | Servidor Web A |
 | Garcia Peñarrieta Brittany Rubi | brittanygarcia2406-eng | Servidor Web A |
 
 ## El producto

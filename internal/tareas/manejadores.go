@@ -65,23 +65,27 @@ func (m *Manejador) crear(w http.ResponseWriter, r *http.Request) {
 // listar obtiene todas las tareas de la base de datos con soporte para filtrado seguro (Fase 2d)
 func (m *Manejador) listar(w http.ResponseWriter, r *http.Request) {
 	var lista []Tarea
-	query := m.DB.Debug()
 
 	// 1. Obtener parámetro "estado" de la URL (ej. /tareas?estado=completada)
 	estadoFiltro := r.URL.Query().Get("estado")
 
-	// 2. Si se envió parámetro, se valida el mapa y se aplica el filtro parametrizado
+	// 2. Si se envió parámetro, se valida el mapa antes de consultar la base
 	if estadoFiltro != "" {
 		if !estadosValidos[estadoFiltro] {
 			respuesta.Error(w, http.StatusUnprocessableEntity, "estado_invalido", "Estado no válido para filtrado")
 			return
 		}
+	}
 
+	query := m.DB.Debug()
+
+	// 3. Aplicar el filtro parametrizado solo si el valor es válido
+	if estadoFiltro != "" {
 		// Previene inyección SQL mediante uso de placeholder '?'
 		query = query.Where("estado = ?", estadoFiltro)
 	}
 
-	// 3. Ejecutar la consulta final
+	// 4. Ejecutar la consulta final
 	if err := query.Find(&lista).Error; err != nil {
 		respuesta.Error(w, http.StatusInternalServerError, "error_base", "No se pudieron obtener las tareas")
 		return
