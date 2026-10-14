@@ -1,0 +1,7 @@
+# Reglas del curso para validar contratos.
+# Parte de las reglas recomendadas de Redocly.
+extends:
+  - recommended
+rules:
+  info-license: off           # un proyecto de clase no publica licencia
+  no-server-example.com: off  # en clase el servidor corre en localhost

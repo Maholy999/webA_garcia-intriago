@@ -15,7 +15,18 @@ type Tarea struct {
 	UsuarioID uint   `json:"usuario_id"`
 }
 
-// Lista de estados válidos exigida por el taller
+// NuevaTarea representa los campos que el cliente puede enviar al crear una tarea.
+type NuevaTarea struct {
+	Titulo    string  `json:"titulo"`
+	UsuarioID uint    `json:"usuario_id"`
+	Estado    *string `json:"estado,omitempty"`
+}
+
+// CambioEstado contiene la transición solicitada por PATCH.
+type CambioEstado struct {
+	Estado string `json:"estado"`
+}
+
 var estadosValidos = map[string]bool{
 	"pendiente":  true,
 	"en_proceso": true,

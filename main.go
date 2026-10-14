@@ -10,6 +10,8 @@ import (
 	"gorm.io/gorm"
 
 	"webA/internal/config"
+	"webA/internal/middleware"
+	"webA/internal/sesion"
 	"webA/internal/tareas"
 )
 
@@ -18,6 +20,10 @@ func main() {
 	cfg, err := config.Cargar()
 	if err != nil {
 		log.Fatal("configuración: ", err)
+	}
+	tokens, err := sesion.NuevoTokens(cfg.JWTSecret)
+	if err != nil {
+		log.Fatal("sesión: ", err)
 	}
 
 	// Se conserva la bandera -reset de la semana 3
@@ -32,21 +38,28 @@ func main() {
 
 	// Se conserva la lógica de reset
 	if *reset {
-		db.Migrator().DropTable(&tareas.Tarea{}, &tareas.Usuario{})
+		if err := db.Migrator().DropTable(&tareas.Tarea{}, &sesion.Cuenta{}, &tareas.Usuario{}); err != nil {
+			log.Fatal("no se pudieron borrar las tablas: ", err)
+		}
 	}
 
-	err = db.Debug().AutoMigrate(&tareas.Usuario{}, &tareas.Tarea{})
+	err = db.Debug().AutoMigrate(&tareas.Usuario{}, &tareas.Tarea{}, &sesion.Cuenta{})
 	if err != nil {
 		log.Fatal("no se pudo migrar: ", err)
 	}
 
 	// Se conserva la semilla de la semana 3
 	tareas.Sembrar(db)
+	if err := sesion.Sembrar(db); err != nil {
+		log.Fatal("no se pudieron sembrar las cuentas de sesión: ", err)
+	}
 
 	// 3. Rutas
 	r := chi.NewRouter()
+	r.Use(middleware.Registro)
+	r.Use(middleware.Recuperacion)
 
-	(&tareas.Manejador{DB: db}).Rutas(r)
+	(&tareas.Manejador{DB: db}).Rutas(r, tokens)
 
 	// 4. Servidor configurado con cfg.Puerto y cfg.TiempoEspera
 	servidor := &http.Server{

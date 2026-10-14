@@ -14,6 +14,7 @@ import (
 // Config es todo lo que el servidor necesita saber del entorno donde corre.
 type Config struct {
 	DatabaseURL  string        // secreto: lleva la contraseña
+	JWTSecret    string        // secreto: firma los tokens de sesión
 	Puerto       string        // configuración: cambia por máquina
 	TiempoEspera time.Duration // configuración: cuánto se espera antes de cortar
 }
@@ -29,6 +30,10 @@ func Cargar() (Config, error) {
 	if c.DatabaseURL == "" {
 		return c, fmt.Errorf("falta DATABASE_URL " +
 			"(copie .env.example a .env y complete la contraseña)")
+	}
+	c.JWTSecret = os.Getenv("JWT_SECRET")
+	if len(c.JWTSecret) < 32 {
+		return c, fmt.Errorf("JWT_SECRET debe tener al menos 32 caracteres")
 	}
 	c.Puerto = os.Getenv("PUERTO")
 	if c.Puerto == "" {

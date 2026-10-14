@@ -33,6 +33,31 @@ Requisitos: Go (versión estable) y PostgreSQL.
 - Con contenedor: `docker run --name pg -e POSTGRES_PASSWORD=postgres -p 5432:5432 -d postgres:16`
 - Base de datos del proyecto: `[nombre]`
 
+## Configuración de sesión
+
+Copie `.env.example` a `.env`, complete `DATABASE_URL` y cambie `JWT_SECRET` por
+una clave propia de al menos 32 caracteres. El archivo `.env` no se debe subir.
+
+Para pruebas locales, el servidor crea estas cuentas de demostración:
+
+| Usuario | Contraseña | Rol |
+| --- | --- | --- |
+| ana | ana-2026 | propietario |
+| luis | luis-2026 | colaborador |
+
+`POST /login` entrega el token. Las demás rutas requieren `Authorization:
+Bearer <token>`.
+
+| Ruta | Propietario | Colaborador |
+| --- | --- | --- |
+| `GET /tareas`, `GET /tareas/{id}` | Ver tareas | Ver tareas |
+| `POST /tareas` | Crear y asignar tarea | Crear una tarea propia |
+| `PUT`, `PATCH`, `DELETE /tareas/{id}` | Cualquier tarea | Solo sus tareas |
+| `GET /usuarios` | Permitido | Prohibido |
+
+El estado inicial siempre es `pendiente`; solo `PATCH` lo cambia, y las únicas
+transiciones son `pendiente` → `en_proceso` → `completada`.
+
 ## Cómo correr las pruebas
 
 ```bash

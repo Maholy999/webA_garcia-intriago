@@ -15,3 +15,15 @@ func TestCargarSinDatabaseURLFalla(t *testing.T) {
 		t.Fatalf("el error no dice qué falta: %v", err)
 	}
 }
+
+func TestCargarSinJWTSecretFalla(t *testing.T) {
+	t.Setenv("DATABASE_URL", "host=localhost user=postgres dbname=test")
+	t.Setenv("JWT_SECRET", "")
+	_, err := Cargar()
+	if err == nil {
+		t.Fatal("se esperaba un error por JWT_SECRET vacía")
+	}
+	if !strings.Contains(err.Error(), "JWT_SECRET") {
+		t.Fatalf("el error no dice qué falta: %v", err)
+	}
+}
