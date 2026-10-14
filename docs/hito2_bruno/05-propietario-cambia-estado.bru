@@ -1,0 +1,21 @@
+meta {
+  name: 05 - Propietario cambia estado
+  type: http
+  seq: 5
+}
+
+patch {
+  url: {{baseUrl}}/tareas/{{tareaDelPropietario}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{tokenPropietario}}
+}
+
+body:json {
+  {
+    "estado": "en_proceso"
+  }
+}

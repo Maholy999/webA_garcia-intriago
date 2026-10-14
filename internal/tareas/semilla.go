@@ -3,11 +3,13 @@ package tareas
 import "gorm.io/gorm"
 
 // Sembrar carga datos de ejemplo si la tabla de usuarios está vacía
-func Sembrar(db *gorm.DB) {
+func Sembrar(db *gorm.DB) error {
 	var total int64
-	db.Model(&Usuario{}).Count(&total)
+	if err := db.Model(&Usuario{}).Count(&total).Error; err != nil {
+		return err
+	}
 	if total > 0 {
-		return
+		return nil
 	}
 
 	datos := []Usuario{
@@ -35,5 +37,5 @@ func Sembrar(db *gorm.DB) {
 		},
 	}
 
-	db.Create(&datos)
+	return db.Create(&datos).Error
 }

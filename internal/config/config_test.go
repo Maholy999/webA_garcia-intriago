@@ -16,14 +16,14 @@ func TestCargarSinDatabaseURLFalla(t *testing.T) {
 	}
 }
 
-func TestCargarSinJWTSecretFalla(t *testing.T) {
+func TestCargarSinClaveFirmaFalla(t *testing.T) {
 	t.Setenv("DATABASE_URL", "host=localhost user=postgres dbname=test")
-	t.Setenv("JWT_SECRET", "")
+	t.Setenv("CLAVE_FIRMA", "")
 	_, err := Cargar()
 	if err == nil {
-		t.Fatal("se esperaba un error por JWT_SECRET vacía")
+		t.Fatal("se esperaba un error por CLAVE_FIRMA vacía")
 	}
-	if !strings.Contains(err.Error(), "JWT_SECRET") {
+	if !strings.Contains(err.Error(), "CLAVE_FIRMA") {
 		t.Fatalf("el error no dice qué falta: %v", err)
 	}
 }

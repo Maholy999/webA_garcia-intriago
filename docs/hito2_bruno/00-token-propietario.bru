@@ -1,0 +1,22 @@
+meta {
+  name: 00 - Preparar token propietario
+  type: http
+  seq: 0
+}
+
+post {
+  url: {{baseUrl}}/login
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "usuario": "ana",
+    "clave": "ana-2026"
+  }
+}
+
+script:post-response {
+  bru.setEnvVar("tokenPropietario", res.body.token);
+}

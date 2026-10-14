@@ -163,8 +163,8 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/RespuestaLogin"
-        "400": { $ref: "#/components/responses/Error400" }
+                $ref: "#/components/schemas/LoginToken"
+        "400": { $ref: "#/components/responses/Error400Sesion" }
         "401": { $ref: "#/components/responses/Error401" }
 components:
   securitySchemes:
@@ -224,6 +224,11 @@ components:
         ok: { type: boolean, const: false }
         error:
           $ref: "#/components/schemas/ErrorDetalle"
+    ErrorSesion:
+      type: object
+      required: [error]
+      properties:
+        error: { type: string }
     RespuestaTarea:
       type: object
       required: [ok, datos]
@@ -259,32 +264,38 @@ components:
           required: [mensaje]
           properties:
             mensaje: { type: string }
-    RespuestaLogin:
+    LoginToken:
       type: object
-      required: [ok, datos]
+      required: [token]
       properties:
-        ok: { type: boolean, const: true }
-        datos:
-          type: object
-          required: [token]
-          properties:
-            token: { type: string }
+        token: { type: string }
   responses:
     Error400:
       description: El servidor no entendió la petición
       content:
         application/json:
           schema: { $ref: "#/components/schemas/Error" }
+    Error400Sesion:
+      description: El cuerpo de inicio de sesión no es JSON válido
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorSesion" }
     Error401:
       description: Falta un token válido o las credenciales son incorrectas
       content:
         application/json:
-          schema: { $ref: "#/components/schemas/Error" }
+          schema:
+            oneOf:
+              - $ref: "#/components/schemas/Error"
+              - $ref: "#/components/schemas/ErrorSesion"
     Error403:
       description: La cuenta autenticada no tiene permiso para esta operación
       content:
         application/json:
-          schema: { $ref: "#/components/schemas/Error" }
+          schema:
+            oneOf:
+              - $ref: "#/components/schemas/Error"
+              - $ref: "#/components/schemas/ErrorSesion"
     Error404:
       description: No existe el elemento solicitado
       content:

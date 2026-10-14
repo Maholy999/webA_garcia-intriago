@@ -1,0 +1,22 @@
+meta {
+  name: 02 - Iniciar sesión como propietario
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/login
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "usuario": "ana",
+    "clave": "ana-2026"
+  }
+}
+
+script:post-response {
+  bru.setEnvVar("tokenPropietario", res.body.token);
+}

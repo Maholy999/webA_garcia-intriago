@@ -1,0 +1,22 @@
+meta {
+  name: 00 - Preparar token colaborador
+  type: http
+  seq: 0
+}
+
+post {
+  url: {{baseUrl}}/login
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "usuario": "luis",
+    "clave": "luis-2026"
+  }
+}
+
+script:post-response {
+  bru.setEnvVar("tokenColaborador", res.body.token);
+}

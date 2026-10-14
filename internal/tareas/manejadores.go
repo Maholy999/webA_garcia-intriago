@@ -18,19 +18,25 @@ type Manejador struct{ DB *gorm.DB }
 
 // Rutas registra todas las rutas HTTP del paquete
 func (m *Manejador) Rutas(r chi.Router, tokens *sesion.Tokens) {
-	r.Post("/login", func(w http.ResponseWriter, r *http.Request) {
-		m.iniciarSesion(w, r, tokens)
+	// Nivel 1 — pública: iniciar sesión.
+	r.Post("/login", (&sesion.Manejador{DB: m.DB, Tokens: tokens}).Login)
+
+	// Nivel 2 — con sesión: cualquier usuario autenticado puede acceder.
+	r.Group(func(conSesion chi.Router) {
+		conSesion.Use(tokens.Autenticar)
+		conSesion.Post("/tareas", m.crear)
+		conSesion.Get("/tareas", m.listar)
+		conSesion.Get("/tareas/{id}", m.verUno)
+		conSesion.Put("/tareas/{id}", m.actualizar)
+		conSesion.Patch("/tareas/{id}", m.cambiarEstado)
+		conSesion.Delete("/tareas/{id}", m.borrar)
 	})
 
-	r.Group(func(protegidas chi.Router) {
-		protegidas.Use(tokens.Guardia())
-		protegidas.Post("/tareas", m.crear)
-		protegidas.Get("/tareas", m.listar)
-		protegidas.Get("/tareas/{id}", m.verUno)
-		protegidas.Put("/tareas/{id}", m.actualizar)
-		protegidas.Patch("/tareas/{id}", m.cambiarEstado)
-		protegidas.Delete("/tareas/{id}", m.borrar)
-		protegidas.With(tokens.Guardia(sesion.RolPropietario)).Get("/usuarios", m.listarUsuarios)
+	// Nivel 3 — solo propietario: la administración de usuarios no es pública.
+	r.Group(func(conRol chi.Router) {
+		conRol.Use(tokens.Autenticar)
+		conRol.Use(sesion.SoloRol(sesion.RolPropietario))
+		conRol.Get("/usuarios", m.listarUsuarios)
 	})
 }
 
@@ -57,7 +63,7 @@ func (m *Manejador) crear(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	identidad, ok := sesion.IdentidadDe(r)
+	identidad, ok := sesion.De(r)
 	if !ok {
 		respuesta.Error(w, http.StatusUnauthorized, "falta_token", "Falta una identidad autenticada")
 		return
@@ -124,39 +130,6 @@ func (m *Manejador) listar(w http.ResponseWriter, r *http.Request) {
 	respuesta.Exito(w, http.StatusOK, lista)
 }
 
-func (m *Manejador) iniciarSesion(w http.ResponseWriter, r *http.Request, tokens *sesion.Tokens) {
-	var entrada struct {
-		Usuario string `json:"usuario"`
-		Clave   string `json:"clave"`
-	}
-	if err := json.NewDecoder(r.Body).Decode(&entrada); err != nil {
-		respuesta.Error(w, http.StatusBadRequest, "json_invalido", "El cuerpo no es un JSON válido")
-		return
-	}
-
-	cuenta, autenticada, err := sesion.Autenticar(m.DB, entrada.Usuario, entrada.Clave)
-	if err != nil {
-		respuesta.Error(w, http.StatusInternalServerError, "error_base", "No se pudo iniciar sesión")
-		return
-	}
-	if !autenticada {
-		respuesta.Error(w, http.StatusUnauthorized, "credenciales_invalidas",
-			"Usuario o contraseña incorrectos")
-		return
-	}
-
-	token, err := tokens.Crear(sesion.Identidad{
-		Usuario:   cuenta.Usuario,
-		Rol:       cuenta.Rol,
-		UsuarioID: cuenta.UsuarioID,
-	})
-	if err != nil {
-		respuesta.Error(w, http.StatusInternalServerError, "error_token", "No se pudo crear la sesión")
-		return
-	}
-	respuesta.Exito(w, http.StatusOK, map[string]string{"token": token})
-}
-
 // verUno obtiene una tarea específica por su ID (Fase 2a)
 func (m *Manejador) verUno(w http.ResponseWriter, r *http.Request) {
 	idStr := chi.URLParam(r, "id")
@@ -221,51 +194,6 @@ func (m *Manejador) actualizar(w http.ResponseWriter, r *http.Request) {
 	respuesta.Exito(w, http.StatusOK, t)
 }
 
-func (m *Manejador) cambiarEstado(w http.ResponseWriter, r *http.Request) {
-	id, ok := idDeRuta(w, r)
-	if !ok {
-		return
-	}
-
-	var cambio CambioEstado
-	if err := json.NewDecoder(r.Body).Decode(&cambio); err != nil {
-		respuesta.Error(w, http.StatusBadRequest, "json_invalido", "El cuerpo no es un JSON válido")
-		return
-	}
-	if !estadosValidos[cambio.Estado] {
-		respuesta.Error(w, http.StatusUnprocessableEntity, "estado_no_permitido",
-			fmt.Sprintf("estado no permitido: %s", cambio.Estado))
-		return
-	}
-
-	var t Tarea
-	if err := m.DB.Debug().First(&t, id).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			respuesta.Error(w, http.StatusNotFound, "no_encontrado", "La tarea no existe")
-			return
-		}
-		respuesta.Error(w, http.StatusInternalServerError, "error_base", "Error al buscar la tarea")
-		return
-	}
-	if !puedeModificar(t, r) {
-		respuesta.Error(w, http.StatusForbidden, "sin_permiso",
-			"Un colaborador solo puede cambiar el estado de sus propias tareas")
-		return
-	}
-	if !TransicionPermitida(t.Estado, cambio.Estado) {
-		respuesta.Error(w, http.StatusUnprocessableEntity, "transicion_prohibida",
-			fmt.Sprintf("transición prohibida: de %s a %s", t.Estado, cambio.Estado))
-		return
-	}
-
-	if err := m.DB.Debug().Model(&t).Update("estado", cambio.Estado).Error; err != nil {
-		respuesta.Error(w, http.StatusInternalServerError, "error_base", "No se pudo cambiar el estado")
-		return
-	}
-	t.Estado = cambio.Estado
-	respuesta.Exito(w, http.StatusOK, t)
-}
-
 // borrar elimina una tarea por su ID (Fase 2a)
 func (m *Manejador) borrar(w http.ResponseWriter, r *http.Request) {
 	idStr := chi.URLParam(r, "id")
@@ -326,7 +254,7 @@ func idDeRuta(w http.ResponseWriter, r *http.Request) (int, bool) {
 }
 
 func puedeModificar(t Tarea, r *http.Request) bool {
-	identidad, ok := sesion.IdentidadDe(r)
+	identidad, ok := sesion.De(r)
 	if !ok {
 		return false
 	}

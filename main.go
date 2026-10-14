@@ -21,10 +21,7 @@ func main() {
 	if err != nil {
 		log.Fatal("configuración: ", err)
 	}
-	tokens, err := sesion.NuevoTokens(cfg.JWTSecret)
-	if err != nil {
-		log.Fatal("sesión: ", err)
-	}
+	tokens := sesion.NuevosTokens(cfg.ClaveFirma)
 
 	// Se conserva la bandera -reset de la semana 3
 	reset := flag.Bool("reset", false, "borra las tablas y arranca con la base vacía")
@@ -38,20 +35,22 @@ func main() {
 
 	// Se conserva la lógica de reset
 	if *reset {
-		if err := db.Migrator().DropTable(&tareas.Tarea{}, &sesion.Cuenta{}, &tareas.Usuario{}); err != nil {
+		if err := db.Migrator().DropTable(&tareas.Tarea{}, &sesion.Usuario{}, &tareas.Usuario{}); err != nil {
 			log.Fatal("no se pudieron borrar las tablas: ", err)
 		}
 	}
 
-	err = db.Debug().AutoMigrate(&tareas.Usuario{}, &tareas.Tarea{}, &sesion.Cuenta{})
+	err = db.Debug().AutoMigrate(&tareas.Usuario{}, &tareas.Tarea{}, &sesion.Usuario{})
 	if err != nil {
 		log.Fatal("no se pudo migrar: ", err)
 	}
 
 	// Se conserva la semilla de la semana 3
-	tareas.Sembrar(db)
+	if err := tareas.Sembrar(db); err != nil {
+		log.Fatal("no se pudieron sembrar los datos del dominio: ", err)
+	}
 	if err := sesion.Sembrar(db); err != nil {
-		log.Fatal("no se pudieron sembrar las cuentas de sesión: ", err)
+		log.Fatal("no se pudieron sembrar los usuarios de sesión: ", err)
 	}
 
 	// 3. Rutas

@@ -1,0 +1,21 @@
+meta {
+  name: 06 - Transición prohibida
+  type: http
+  seq: 6
+}
+
+patch {
+  url: {{baseUrl}}/tareas/{{tareaProhibida}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{tokenPropietario}}
+}
+
+body:json {
+  {
+    "estado": "completada"
+  }
+}

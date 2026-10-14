@@ -1,3 +1,42 @@
+# Semana 7 · D1 — Máquina de estados de Tarea
+
+| Desde | Se puede pasar a |
+| --- | --- |
+| `pendiente` | `en_proceso` |
+| `en_proceso` | `completada` |
+| `completada` | Ningún estado (final) |
+
+**Transición prohibida elegida:** `pendiente` → `completada`. No se marca una
+tarea como terminada sin que haya pasado por `en_proceso`. El servidor responde
+422 porque entiende el estado solicitado, pero la regla del negocio no permite
+esa transición.
+
+## Semana 7 · D2 — Roles y niveles de acceso
+
+| Ruta | Nivel | Propietario | Colaborador |
+| --- | --- | --- | --- |
+| `POST /login` | Pública | Inicia sesión | Inicia sesión |
+| `GET /tareas`, `GET /tareas/{id}` | Con sesión | Ve las tareas del tablero | Ve las tareas del tablero |
+| `POST /tareas` | Con sesión | Crea y asigna a cualquier usuario | Crea tareas para sí mismo |
+| `PUT /tareas/{id}`, `PATCH /tareas/{id}`, `DELETE /tareas/{id}` | Con sesión | Gestiona cualquier tarea | Gestiona solo las tareas propias |
+| `GET /usuarios` | Solo propietario | Permitido | 403 |
+
+Las rutas con sesión exigen un JWT vigente y admiten ambos roles. La ruta de
+usuarios se agrupa aparte para exigir el rol `propietario`. El propietario puede
+actuar sobre las tareas del tablero; al colaborador se le compara el ID de la
+sesión con `tarea.UsuarioID`. Una sesión ausente o inválida responde 401; un rol
+o propietario incorrecto responde 403; una transición de negocio prohibida
+responde 422.
+
+## Semana 7 · D3 — Prueba que protege las rutas
+
+`TestSinTokenLasRutasProtegidasResponden401` enumera las rutas no públicas
+actuales, incluidas las de sesión y la ruta de un solo rol. Si una ruta se saca
+accidentalmente de su grupo de autenticación, la prueba falla e identifica el
+método y la ruta. Para la demostración se comprueba además el mismo cambio de
+estado con un colaborador (403), con el propietario (200) y con una transición
+prohibida (422).
+
 ## orden de middleware
 
 r.Use(middleware.Registro)
@@ -19,20 +58,16 @@ Explicación.
 un 400 comunica no entendí lo que me mandaste, mientras que un 422 comunica te entendí,
 pero el contenido no cumple las reglas.
 
-## Campo desconocido en el cuerpo
+## Estado inicial de una tarea
 
-Rechazar el cuerpo con
-`dec.DisallowUnknownFields()` si trae un campo que no es `titulo` o `prioridad`.
-Explicación,
-Un campo como `"estado":"cerrado"` en la creación sugiere que el cliente cree que puede fijar el estado del ticket,
-cosa que no le corresponde. Ignorarlo en silencio esconde ese error del lado del cliente; rechazarlo lo hace visible de inmediato.
+Una tarea nueva empieza en `pendiente`. El cliente puede omitir `estado` o
+enviarlo como `pendiente`; cualquier otro estado inicial se rechaza con 422.
+Los cambios posteriores se hacen con `PATCH /tareas/{id}`, donde se valida la
+máquina de estados de D1.
 
-Alternativa descartada:
-ignorarlo en silencio (comportamiento por defecto de `encoding/json`). Es más tolerante, pero permite
-que un cliente mal hecho siga funcionando sin darse cuenta de su error.
 Cómo lo comprobamos:
-`curl -i -X POST localhost:8080/tickets -d '{"titulo":"Pantalla rota","prioridad":"alta","estado":"cerrado"}'`
-El `Decode` falla y responde `cuerpo_malformado` (o el código que hayan definido para este caso).
+`curl -i -X POST localhost:8080/tareas -H "Content-Type: application/json" -d '{"titulo":"Revisar proyector","estado":"en_proceso"}'`
+La petición responde `422` con el código `estado_inicial`.
 
 ## Semana 4 · D3 · La prueba que no escribimos
 **Decisión:** La fila estrella de nuestra E4 es la prueba `estado inventado responde 422` del `TestCrear`, porque valida la regla más importante del flujo antes de tocar la base: un `estado` que no está en el mapa debe rechazarse con 422.

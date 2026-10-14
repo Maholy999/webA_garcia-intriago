@@ -1,83 +1,83 @@
+// Package sesion responde a una sola pregunta: ¿quién hace esta petición?
+// Emite los tokens al iniciar sesión y los revisa en cada petición.
+//
+// Este archivo se copia tal cual: no tiene ninguna línea que cambiar.
 package sesion
 
 import (
 	"errors"
-	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 )
 
-const emisor = "webA"
+// Duracion es cuánto vale un token desde que se emite.
+const Duracion = time.Hour
 
-// Roles define los permisos de las cuentas de la aplicación.
-const (
-	RolPropietario = "propietario"
-	RolColaborador = "colaborador"
-)
-
-// Identidad contiene la identidad autenticada por un token válido.
-type Identidad struct {
-	Usuario   string
-	Rol       string
+// Sesion es lo que el servidor sabe de quien hace la petición.
+// Sale del token: no se consulta la base de datos en cada petición.
+type Sesion struct {
 	UsuarioID uint
+	Nombre    string
+	Rol       string
 }
 
-type claims struct {
-	Rol       string `json:"rol"`
-	UsuarioID uint   `json:"usuario_id"`
+// datos es lo que viaja dentro del token. Cualquiera puede leerlo:
+// va codificado, no cifrado. Lo que nadie puede hacer es cambiarlo.
+type datos struct {
+	Nombre string `json:"nombre"`
+	Rol    string `json:"rol"`
 	jwt.RegisteredClaims
 }
 
-// Tokens firma y valida tokens de acceso.
+// Tokens emite y revisa tokens con el secreto que recibe.
 type Tokens struct {
 	secreto []byte
 }
 
-func NuevoTokens(secreto string) (*Tokens, error) {
-	if len(secreto) < 32 {
-		return nil, errors.New("JWT_SECRET debe tener al menos 32 caracteres")
-	}
-	return &Tokens{secreto: []byte(secreto)}, nil
+// NuevosTokens recibe el secreto de la firma. El secreto llega desde la
+// configuración (la variable de entorno); nunca se escribe en el código.
+func NuevosTokens(secreto string) *Tokens {
+	return &Tokens{secreto: []byte(secreto)}
 }
 
-func (t *Tokens) Crear(identidad Identidad) (string, error) {
-	if identidad.Usuario == "" || identidad.Rol == "" || identidad.UsuarioID == 0 {
-		return "", errors.New("la identidad del token está incompleta")
-	}
-
+// Emitir firma un token para el usuario que acaba de probar quién es.
+func (t *Tokens) Emitir(u Usuario) (string, error) {
 	ahora := time.Now()
-	payload := claims{
-		Rol:       identidad.Rol,
-		UsuarioID: identidad.UsuarioID,
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, datos{
+		Nombre: u.Nombre,
+		Rol:    u.Rol,
 		RegisteredClaims: jwt.RegisteredClaims{
-			Issuer:    emisor,
-			Subject:   identidad.Usuario,
+			Subject:   strconv.Itoa(int(u.ID)),
 			IssuedAt:  jwt.NewNumericDate(ahora),
-			ExpiresAt: jwt.NewNumericDate(ahora.Add(8 * time.Hour)),
+			ExpiresAt: jwt.NewNumericDate(ahora.Add(Duracion)),
 		},
-	}
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, payload)
+	})
 	return token.SignedString(t.secreto)
 }
 
-func (t *Tokens) Verificar(cadena string) (Identidad, error) {
-	payload := &claims{}
-	token, err := jwt.ParseWithClaims(cadena, payload, func(token *jwt.Token) (any, error) {
-		if token.Method != jwt.SigningMethodHS256 {
-			return nil, fmt.Errorf("método de firma no permitido: %s", token.Method.Alg())
-		}
-		return t.secreto, nil
-	}, jwt.WithIssuer(emisor))
+// ErrVencido distingue un token que fue bueno de uno que nunca lo fue.
+var ErrVencido = errors.New("el token está vencido")
+
+// Leer revisa la firma y la fecha de vencimiento. Solo si las dos
+// pasan devuelve la sesión.
+func (t *Tokens) Leer(texto string) (Sesion, error) {
+	var d datos
+	_, err := jwt.ParseWithClaims(texto, &d,
+		func(*jwt.Token) (any, error) { return t.secreto, nil },
+		jwt.WithValidMethods([]string{"HS256"}),
+		jwt.WithExpirationRequired(),
+	)
+	if errors.Is(err, jwt.ErrTokenExpired) {
+		return Sesion{}, ErrVencido
+	}
 	if err != nil {
-		return Identidad{}, err
+		return Sesion{}, err
 	}
-	if !token.Valid || payload.Subject == "" || payload.Rol == "" || payload.UsuarioID == 0 {
-		return Identidad{}, errors.New("token inválido")
+	id, err := strconv.Atoi(d.Subject)
+	if err != nil {
+		return Sesion{}, err
 	}
-	return Identidad{
-		Usuario:   payload.Subject,
-		Rol:       payload.Rol,
-		UsuarioID: payload.UsuarioID,
-	}, nil
+	return Sesion{UsuarioID: uint(id), Nombre: d.Nombre, Rol: d.Rol}, nil
 }

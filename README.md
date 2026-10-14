@@ -35,8 +35,8 @@ Requisitos: Go (versión estable) y PostgreSQL.
 
 ## Configuración de sesión
 
-Copie `.env.example` a `.env`, complete `DATABASE_URL` y cambie `JWT_SECRET` por
-una clave propia de al menos 32 caracteres. El archivo `.env` no se debe subir.
+Copie `.env.example` a `.env`, complete `DATABASE_URL` y cambie `CLAVE_FIRMA`
+por una clave propia de al menos 32 caracteres. El archivo `.env` no se debe subir.
 
 Para pruebas locales, el servidor crea estas cuentas de demostración:
 
@@ -45,8 +45,8 @@ Para pruebas locales, el servidor crea estas cuentas de demostración:
 | ana | ana-2026 | propietario |
 | luis | luis-2026 | colaborador |
 
-`POST /login` entrega el token. Las demás rutas requieren `Authorization:
-Bearer <token>`.
+`POST /login` devuelve un objeto `{"token":"..."}`. En las demás rutas envíe
+el encabezado `Authorization: Bearer <token>`.
 
 | Ruta | Propietario | Colaborador |
 | --- | --- | --- |

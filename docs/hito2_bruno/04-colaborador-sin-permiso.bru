@@ -1,0 +1,21 @@
+meta {
+  name: 04 - Colaborador intenta cambiar tarea ajena
+  type: http
+  seq: 4
+}
+
+patch {
+  url: {{baseUrl}}/tareas/{{tareaDelPropietario}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{tokenColaborador}}
+}
+
+body:json {
+  {
+    "estado": "en_proceso"
+  }
+}

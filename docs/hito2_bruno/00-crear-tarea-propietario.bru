@@ -1,0 +1,26 @@
+meta {
+  name: 00 - Crear tarea propia
+  type: http
+  seq: 0
+}
+
+post {
+  url: {{baseUrl}}/tareas
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{tokenPropietario}}
+}
+
+body:json {
+  {
+    "titulo": "Tarea propia para probar permisos",
+    "usuario_id": {{usuarioPropietario}}
+  }
+}
+
+script:post-response {
+  bru.setEnvVar("tareaDelPropietario", res.body.datos.id);
+}

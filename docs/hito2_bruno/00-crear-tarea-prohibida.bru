@@ -1,0 +1,26 @@
+meta {
+  name: 00 - Crear tarea para transición prohibida
+  type: http
+  seq: 0
+}
+
+post {
+  url: {{baseUrl}}/tareas
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{tokenPropietario}}
+}
+
+body:json {
+  {
+    "titulo": "Tarea para transición prohibida",
+    "usuario_id": {{usuarioPropietario}}
+  }
+}
+
+script:post-response {
+  bru.setEnvVar("tareaProhibida", res.body.datos.id);
+}
